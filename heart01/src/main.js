@@ -29,7 +29,7 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
@@ -44,9 +44,54 @@ document.body.appendChild(renderer.domElement);
 // Controls
 // ======================
 const controls = new OrbitControls(camera, renderer.domElement);
-
 controls.enableDamping = true;
+controls.dampingFactor = 0.05;
 
+controls.minDistance = 1.5;
+controls.maxDistance = 15;
+
+controls.enablePan = true;
+controls.maxPolarAngle = Math.PI * 0.95;
+controls.minPolarAngle = 0.1;
+
+
+// ======================
+// Axes Helper
+// ======================
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
+
+
+// =====================
+// Grid Helper
+// =====================
+const gridHelper = new THREE.GridHelper(10, 10,0X444444,0X222222);
+scene.add(gridHelper);
+
+
+//Fog
+scene.fog = new THREE.Fog(0x111111, 12, 30);
+
+
+//Reset Camera Position
+function resetCamera() {
+    camera.position.set(0, 0, 5);
+    controls.target.set(0, 0, 0);
+    controls.update();
+}
+
+// Call the function to reset the camera position
+resetCamera();
+
+//Clock
+const clock = new THREE.Clock();
+
+
+
+
+
+
+/*****************************************************/
 // ======================
 // Lights
 // ======================
@@ -171,6 +216,8 @@ loader.load(
 function animate() {
 
     requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
 
     controls.update();
 
