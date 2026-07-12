@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
+import "./style.css";
 
 // ======================
 // Scene
@@ -32,9 +33,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.4;
 
-renderer.shadowMap.enabled = true;
+renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 
@@ -45,7 +46,11 @@ document.body.appendChild(renderer.domElement);
 // ======================
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
+controls.dampingFactor = 0.08;
+
+controls.rotateSpeed = 0.8;
+controls.zoomSpeed = 0.8;
+controls.panSpeed = 0.6;
 
 controls.minDistance = 1.5;
 controls.maxDistance = 15;
@@ -62,11 +67,11 @@ const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 
 
-// =====================
-// Grid Helper
-// =====================
-const gridHelper = new THREE.GridHelper(10, 10,0X444444,0X222222);
-scene.add(gridHelper);
+// // =====================
+// // Grid Helper
+// // =====================
+// const gridHelper = new THREE.GridHelper(10, 10,0X444444,0X222222);
+// scene.add(gridHelper);
 
 
 //Fog
@@ -101,13 +106,20 @@ scene.add(ambientLight);
 
 // Main Light
 const mainLight = new THREE.DirectionalLight(0xffffff, 4);
-mainLight.position.set(5, 5, 5);
+mainLight.position.set(6, 8, 6);
 mainLight.castShadow = true;
 
 mainLight.shadow.mapSize.width = 2048;
 mainLight.shadow.mapSize.height = 2048;
 
+mainLight.shadow.camera.near = 0.5;
+mainLight.shadow.camera.far = 30;
+mainLight.shadow.bias = -0.0005;
+
 scene.add(mainLight);
+
+
+
 
 // Fill Light
 const fillLight = new THREE.DirectionalLight(0xffffff, 2);
@@ -132,11 +144,50 @@ rgbeLoader.load(
         scene.environment = texture;
     });
 
+//Creating a floor to receive shadows++++++++++++++++++++++++++++++
+const floorGeometry = new THREE.PlaneGeometry(100, 100);
+const floorMaterial = new THREE.ShadowMaterial({ 
+    color:0x2d2d2d ,
+    roughness: 1
+ });
+
+ const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+ floor.rotation.x = -Math.PI / 2;
+ floor.position.y = -2;
+ floor.receiveShadow = true;
+ scene.add(floor);
+
+//Creating a loader for the GLTF model
+const loadingManager = new THREE.LoadingManager();
+
+const loadingBar = document.getElementById("loading-progress");
+const loadingText = document.getElementById("loading-text");
+
+loadingManager.onProgress = (url, loaded, total) => {
+    const percent = (loaded / total) * 100;
+    loadingBar.style.width = `${percent}%`;
+    loadingText.innerHTML = `Loading: ${Math.round(percent)}%`;
+
+};
+
+loadingManager.onLoad = () => {
+    const screen = document.getElementById("loading-screen");
+    screen.style.opacity = 0;
+    setTimeout(() => {
+        screen.style.display = "none";
+    }, 600);
+
+};
+
+const loader = new GLTFLoader(loadingManager);
+
+
+
   
 
 //******************************************************************************************************** */
 //Creating a loader for the GLTF model
-const loader = new GLTFLoader();
+// const loader = new GLTFLoader();
 
 loader.load(
 
