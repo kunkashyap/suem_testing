@@ -361,6 +361,8 @@ loader.load(
 
 );
 
+console.log(heart);
+
 window.addEventListener("click", onMouseClick);
 function onMouseClick(event) {
     // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
@@ -371,13 +373,20 @@ function onMouseClick(event) {
     raycaster.setFromCamera(mouse, camera);
 
     // Calculate objects intersecting the picking ray
-    const intersects = raycaster.intersectObjects(heart, true);
+    const intersects = raycaster.intersectObject(heart, true);
 
     if (intersects.length > 0) {
         console.log("Intersected object:", intersects[0].object.name);
     }
 
 }
+
+// window.addEventListener("click", (event) => {
+//     console.log("Window Clicked");
+//     console.log(event.clientX,event.clientY);
+// });
+
+
 
 
 
