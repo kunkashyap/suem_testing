@@ -3,6 +3,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
 import "./style.css";
+import { createLayout } from "./ui/layout.js";
+
 
 // ======================
 // Scene
@@ -13,12 +15,23 @@ scene.background = new THREE.Color(0x111111);
 // ======================
 // Camera
 // ======================
+// const camera = new THREE.PerspectiveCamera(
+//     45,
+//     window.innerWidth / window.innerHeight,
+//     0.1,
+//     1000
+// );
+
+
+createLayout();
+const viewer = document.getElementById("viewer");
 const camera = new THREE.PerspectiveCamera(
     45,
-    window.innerWidth / window.innerHeight,
+    viewer.clientWidth / viewer.clientHeight,
     0.1,
     1000
 );
+
 
 camera.position.set(0, 0, 5);
 
@@ -29,7 +42,7 @@ const renderer = new THREE.WebGLRenderer({
     antialias: true
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(viewer.clientWidth, viewer.clientHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -39,7 +52,8 @@ renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 
-document.body.appendChild(renderer.domElement);
+// document.body.appendChild(renderer.domElement);
+document.getElementById("viewer").appendChild(renderer.domElement);
 
 // ======================
 // Controls
@@ -189,6 +203,7 @@ const loader = new GLTFLoader(loadingManager);
 //Creating a loader for the GLTF model
 // const loader = new GLTFLoader();
 
+
 loader.load(
 
     "/models/Heart.glb",
@@ -197,44 +212,43 @@ loader.load(
 
         const heart = gltf.scene;
 
+        // ---------- Bounding Box ----------
         const box = new THREE.Box3().setFromObject(heart);
-        console.log(box)
 
+        const center = new THREE.Vector3();
+        box.getCenter(center);
 
-        const center = box.getCenter(new THREE.Vector3());
-        console.log(center)
+        const size = new THREE.Vector3();
+        box.getSize(size);
 
+        // ---------- Center Model ----------
+        heart.position.x = -center.x;
+        heart.position.y = -center.y;
+        heart.position.z = -center.z;
 
-        heart.position.sub(center); // Center the model
+        // ---------- Camera ----------
+        const maxDim = Math.max(size.x, size.y, size.z);
 
-
-        const size = box.getSize(new THREE.Vector3());
-        console.log(size)
-
-        const maxDimension = Math.max(size.x, size.y, size.z);
-
-        heart.position.sub(center);
-
-        scene.add(heart);
-
-        camera.position.set(0,0,maxDimension * 2);
-
-        controls.target.set(0,0,0);
-
+        camera.position.set(0, 0, maxDim * 2.5);
+        camera.lookAt(0,0,0);
+        controls.target.set(0, 0, 0);
         controls.update();
 
+        // camera.near = maxDim / 100;
+        // camera.far = maxDim * 100;
 
+        // camera.updateProjectionMatrix();
 
+        
+    
 
-        // Inspect materials
+        // ---------- Shadows ----------
         heart.traverse((child) => {
 
             if (child.isMesh) {
 
                 child.castShadow = true;
                 child.receiveShadow = true;
-
-                console.log(child.material);
 
             }
 
@@ -283,11 +297,17 @@ animate();
 // ======================
 window.addEventListener("resize", () => {
 
-    camera.aspect = window.innerWidth / window.innerHeight;
+    
+
+    camera.aspect = viewer.clientWidth / viewer.clientHeight;
 
     camera.updateProjectionMatrix();
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+
+    // renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
 
 });
 
