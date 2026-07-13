@@ -4,6 +4,14 @@ import {GLTFLoader} from "three/examples/jsm/loaders/GLTFLoader.js";
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js";
 import "./style.css";
 import { createLayout } from "./ui/layout.js";
+import { hotspots } from "./annotations/hotspots.js";
+import { heartMarkers } from "./anatomy/heartMarkers.js";
+
+
+
+
+// console.log(hotspots); // Log the hotspots array to the console
+console.log(heartMarkers); // Log the heartMarkers array to the console
 
 
 // ======================
@@ -11,6 +19,11 @@ import { createLayout } from "./ui/layout.js";
 // ======================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111111);
+
+
+const markerGroup = new THREE.Group();
+scene.add(markerGroup);
+
 
 // ======================
 // Camera
@@ -23,8 +36,25 @@ scene.background = new THREE.Color(0x111111);
 // );
 
 
+//======================
+//Raycaster
+//======================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+
+
+
+
+
+
+
+
+
+
 createLayout();
 const viewer = document.getElementById("viewer");
+const resetButton = document.getElementById("reset-camera");
 const camera = new THREE.PerspectiveCamera(
     45,
     viewer.clientWidth / viewer.clientHeight,
@@ -34,6 +64,14 @@ const camera = new THREE.PerspectiveCamera(
 
 
 camera.position.set(0, 0, 5);
+
+
+
+
+
+
+
+
 
 // ======================
 // Renderer
@@ -92,9 +130,15 @@ scene.add(axesHelper);
 scene.fog = new THREE.Fog(0x111111, 12, 30);
 
 
+ //Default Camera Position
+ let defaultCameraPosition = new THREE.Vector3();
+
+
+
 //Reset Camera Position
 function resetCamera() {
-    camera.position.set(0, 0, 5);
+    resetButton.addEventListener("click", resetCamera);
+    camera.position.copy(defaultCameraPosition);
     controls.target.set(0, 0, 0);
     controls.update();
 }
@@ -104,6 +148,8 @@ resetCamera();
 
 //Clock
 const clock = new THREE.Clock();
+
+
 
 
 
@@ -177,23 +223,37 @@ const loadingManager = new THREE.LoadingManager();
 const loadingBar = document.getElementById("loading-progress");
 const loadingText = document.getElementById("loading-text");
 
-loadingManager.onProgress = (url, loaded, total) => {
-    const percent = (loaded / total) * 100;
-    loadingBar.style.width = `${percent}%`;
-    loadingText.innerHTML = `Loading: ${Math.round(percent)}%`;
+// loadingManager.onProgress = (url, loaded, total) => {
+//     const percent = (loaded / total) * 100;
+//     loadingBar.style.width = `${percent}%`;
+//     loadingText.innerHTML = `Loading: ${Math.round(percent)}%`;
 
-};
+// };
 
-loadingManager.onLoad = () => {
-    const screen = document.getElementById("loading-screen");
-    screen.style.opacity = 0;
-    setTimeout(() => {
-        screen.style.display = "none";
-    }, 600);
+// loadingManager.onLoad = () => {
+//     const screen = document.getElementById("loading-screen");
+//     // screen.style.opacity = 0;
+//     setTimeout(() => {
+//         screen.style.display = "none";
+//     }, 600);
 
-};
+// };
+
+
+
+
+
+
+
+let heart; // Declare heart variable in a broader scope
+
 
 const loader = new GLTFLoader(loadingManager);
+
+
+
+const markerGeometry = new THREE.SphereGeometry(0.25, 32 , 32);
+const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, depthTest: false });
 
 
 
@@ -210,7 +270,7 @@ loader.load(
 
     (gltf) => {
 
-        const heart = gltf.scene;
+        heart = gltf.scene;
 
         // ---------- Bounding Box ----------
         const box = new THREE.Box3().setFromObject(heart);
@@ -230,6 +290,9 @@ loader.load(
         const maxDim = Math.max(size.x, size.y, size.z);
 
         camera.position.set(0, 0, maxDim * 2.5);
+
+        defaultCameraPosition.copy(camera.position); //Store the default camera position
+
         camera.lookAt(0,0,0);
         controls.target.set(0, 0, 0);
         controls.update();
@@ -247,6 +310,8 @@ loader.load(
 
             if (child.isMesh) {
 
+                console.log(child.name); // Log the name of each mesh in the heart model
+
                 child.castShadow = true;
                 child.receiveShadow = true;
 
@@ -255,6 +320,32 @@ loader.load(
         });
 
         scene.add(heart);
+
+        heartMarkers.forEach((marker) => {
+            const sphere = new THREE.Mesh(markerGeometry, markerMaterial.clone());
+            sphere.position.copy(marker.position);
+            sphere.userData = marker; // Store marker data in userData for later use
+            heart.add(sphere);
+            console.log(`Added marker: ${marker.title} at position ${marker.position.toArray()}`);
+        });
+
+
+        
+        
+        hotspots.forEach((hotspot) => {
+            const geometry = new THREE.SphereGeometry(0.25, 32, 32);
+
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+
+            const marker = new THREE.Mesh(geometry, material);
+            
+            marker.position.set(0,0,0);
+            
+            scene.add(marker);
+
+
+
+
 
         console.log("Heart Loaded!");
 
@@ -269,6 +360,24 @@ loader.load(
     }
 
 );
+
+window.addEventListener("click", onMouseClick);
+function onMouseClick(event) {
+    // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Update the picking ray with the camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
+
+    // Calculate objects intersecting the picking ray
+    const intersects = raycaster.intersectObjects(heart, true);
+
+    if (intersects.length > 0) {
+        console.log("Intersected object:", intersects[0].object.name);
+    }
+
+}
 
 
 
@@ -297,7 +406,8 @@ animate();
 // ======================
 window.addEventListener("resize", () => {
 
-    
+    const viewer = document.getElementById("viewer");
+
 
     camera.aspect = viewer.clientWidth / viewer.clientHeight;
 
@@ -305,10 +415,6 @@ window.addEventListener("resize", () => {
 
     renderer.setSize(viewer.clientWidth, viewer.clientHeight);
 
-    // renderer.setSize(window.innerWidth, window.innerHeight);
-    
-    renderer.setSize(viewer.clientWidth, viewer.clientHeight);
-
 });
 
-
+    });
